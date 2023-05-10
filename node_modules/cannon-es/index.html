@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+
+    <title>cannon-es</title>
+    <meta name="description" content="A lightweight 3D physics engine written in JavaScript." />
+    <meta name="keywords" content="javascript,three.js,physics,ammo.js,engine,cannon-es,cannon" />
+    <meta name="author" content="Stefan Hedman (schteppe)" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700" rel="stylesheet" />
+    <style type="text/css">
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Open Sans', monospace;
+        color: #111;
+      }
+
+      h1 {
+        font-size: 4rem;
+        margin: 0.75rem 0;
+      }
+
+      h2 {
+        font-size: 2rem;
+        margin: 0.75rem 0;
+      }
+
+      a {
+        color: #351fad;
+      }
+
+      a:hover {
+        color: #0366d6;
+      }
+
+      .title .github {
+        display: inline-block;
+        margin-left: 1.5rem;
+        width: 2.3rem;
+        height: 2.3rem;
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 2.2rem;
+        }
+
+        .title .github {
+          margin-left: 0.5rem;
+          width: 1.3rem;
+          height: 1.3rem;
+        }
+      }
+
+      .description {
+        margin-bottom: 4rem;
+      }
+
+      .container {
+        margin: 0 auto;
+        max-width: 64rem;
+        padding: 1rem 1rem 5rem;
+      }
+
+      .examples {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-gap: 2rem;
+      }
+
+      .image {
+        display: block;
+      }
+      .image:hover {
+        opacity: 0.9;
+      }
+
+      .image img {
+        width: 100%;
+        border-radius: 3px;
+      }
+
+      .caption {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-top: 0.3rem;
+      }
+      .caption .name {
+        display: inline-block;
+        font-size: 1.1rem;
+        line-height: 1;
+        text-decoration: none;
+      }
+      .caption .name:hover {
+        text-decoration: underline;
+      }
+
+      .caption .name::first-letter {
+        text-transform: capitalize;
+      }
+
+      .caption .github {
+        width: 1.3rem;
+        height: 1.3rem;
+      }
+
+      .github img {
+        width: 100%;
+      }
+    </style>
+    <script type="module">
+      const examples = [
+        'threejs_cloth',
+        'threejs_fps',
+        'threejs_mousepick',
+        'threejs_voxel_fps',
+        'threejs',
+        'worker',
+        'worker_sharedarraybuffer',
+        'body_types',
+        'bounce',
+        'bunny',
+        'callbacks',
+        'canvas_interpolation',
+        'collision_filter',
+        'collisions',
+        'compound',
+        'constraints',
+        'container',
+        'convex',
+        'events',
+        'fixed_rotation',
+        'friction',
+        'heightfield',
+        'hinge',
+        'impulses',
+        'jenga',
+        'pile',
+        'performance',
+        'ragdoll',
+        'raycast_vehicle',
+        'rigid_vehicle',
+        'shapes',
+        'simple_friction',
+        'single_body_on_plane',
+        'sleep',
+        'sph',
+        'split_solver',
+        'spring',
+        'stacks',
+        'tear',
+        'trigger',
+        'trimesh',
+        'tween',
+      ]
+
+      function exampleTemplate(name) {
+        const readableName = replaceAll(name, '_', ' ')
+          .replace('threejs', 'three.js')
+          .replace('sharedarraybuffer', 'SharedArrayBuffer')
+
+        return `
+          <div class="example">
+            <a href="examples/${name}" class="image"><img src="screenshots/${name}.png" /></a>
+            <div class="caption">
+              <a href="examples/${name}" class="name">${readableName}</a>
+              <a
+                href="https://github.com/react-spring/cannon-es/blob/master/examples/${name}.html"
+                target="_blank"
+                class="github"
+                title="View source code on GitHub"
+                ><img src="examples/icons/github.svg" alt="GitHub"
+              /></a>
+            </div>
+          </div>
+        `
+      }
+
+      // generate and add the examples to the DOM
+      const examplesContainer = document.querySelector('.examples')
+      examples.forEach((example) => {
+        const exampleNode = createElementFromHTML(exampleTemplate(example))
+        examplesContainer.appendChild(exampleNode)
+      })
+
+      function createElementFromHTML(htmlString) {
+        const div = document.createElement('div')
+        div.innerHTML = htmlString.trim()
+        return div.firstChild
+      }
+
+      function replaceAll(string, find, replace) {
+        return string.split(find).join(replace)
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1 class="title">
+        cannon-es
+        <a
+          href="https://github.com/react-spring/cannon-es"
+          target="_blank"
+          class="github"
+          title="View source code for cannon-es on GitHub"
+        >
+          <img src="examples/icons/github.svg" alt="GitHub" />
+        </a>
+      </h1>
+
+      <div class="description">A lightweight and simple 3D physics engine for the web.</div>
+
+      <h2>
+        <a href="docs/index.html">Documentation</a>
+      </h2>
+
+      <br />
+
+      <h2>Examples</h2>
+      <div class="examples"></div>
+    </div>
+  </body>
+</html>

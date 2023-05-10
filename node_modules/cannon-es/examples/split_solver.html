@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - splitsolver demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * This demonstrates why it can be good to use the SplitSolver.
+       * If you have put a nonzero tolerance on a solver, it will in stop iterating when
+       * the total error is small, in other words: when the system is solved "good enough".
+       * When simulating larger systems with more equations, the error will add up,
+       * and the solver will need more iterations/work to reach the "good enough" level.
+       *
+       * The SplitSolver splits the system into independent parts, and runs a subsolver
+       * on each part. The total error in a subsystem will many times be smaller than in
+       * the large system, so we can many times cut down on the total number of iterations we do.
+       *
+       * Another interesting fact is that we *could* run the subsystems in separate threads and
+       * speed up the computing even more. However, CANNON runs in one thread for now.
+       *
+       * The first scene uses the split solver and the second one does not. Turn on the
+       * profiling plot and enjoy!
+       */
+
+      const demo = new Demo()
+
+      demo.addScene('With SplitSolver', () => {
+        createScene({ split: true })
+      })
+      demo.addScene('Without SplitSolver', () => {
+        createScene({ split: false })
+      })
+
+      demo.start()
+
+      function createScene(options) {
+        const world = setupWorld(demo)
+
+        const solver = new CANNON.GSSolver()
+        solver.iterations = 50
+        solver.tolerance = 0.0001
+        if (options.split) {
+          world.solver = new CANNON.SplitSolver(solver)
+        } else {
+          world.solver = solver
+        }
+
+        // Static ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0 })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        // Shape
+        const size = 0.5
+        // const shape = new CANNON.Sphere(size)
+        const shape = new CANNON.Box(new CANNON.Vec3(size * 0.5, size * 0.5, size * 0.5))
+
+        // Shape on plane
+        const N = 5
+        for (let i = 0; i < N; i++) {
+          for (let j = 0; j < N; j++) {
+            const shapeBody = new CANNON.Body({ mass: 1 })
+            shapeBody.addShape(shape)
+            shapeBody.position.set((i - N * 0.5) * size * 2 * 1.1, size * 1.05, (j - N * 0.5) * size * 2 * 1.1)
+            world.addBody(shapeBody)
+            demo.addVisual(shapeBody)
+          }
+        }
+
+        // Shape on top
+        const shapeBody = new CANNON.Body({ mass: 1 })
+        shapeBody.addShape(shape)
+        shapeBody.position.set(-size, size * 5, size)
+        world.addBody(shapeBody)
+        demo.addVisual(shapeBody)
+      }
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -10, 0)
+
+        // Tweak contact properties.
+        // Contact stiffness - use to make softer/harder contacts
+        world.defaultContactMaterial.contactEquationStiffness = 1e7
+
+        // Stabilization time in number of timesteps
+        world.defaultContactMaterial.contactEquationRelaxation = 5
+
+        return world
+      }
+    </script>
+  </body>
+</html>

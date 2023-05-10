@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - impulse demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Demonstrates how to add impulses and forces to a body. You can add the impulses and forces to any point on the body.
+       * Adding a force to the body will add to Body.force and Body.torque.
+       * An impulse is a force added to a body during a short period of time (impulse = force * time). Impulses will be added to Body.velocity and Body.angularVelocity.
+       */
+
+      const demo = new Demo()
+
+      const radius = 1
+      const mass = 2
+      const strength = 500
+      const dt = 1 / 60
+      const damping = 0.5
+
+      // Add impulse to the body center
+      demo.addScene('Center impulse', () => {
+        const world = setupWorld(demo)
+
+        const shape = new CANNON.Sphere(radius)
+        const body = new CANNON.Body({ mass })
+        body.addShape(shape)
+        body.linearDamping = damping
+        body.angularDamping = damping
+        world.addBody(body)
+        demo.addVisual(body)
+
+        const impulse = new CANNON.Vec3(-strength * dt, 0, 0)
+        body.applyImpulse(impulse)
+      })
+
+      // Add impulse to the top of the sphere
+      demo.addScene('Top impulse', () => {
+        const world = setupWorld(demo)
+
+        const shape = new CANNON.Sphere(radius)
+        const body = new CANNON.Body({ mass })
+        body.addShape(shape)
+        body.linearDamping = damping
+        body.angularDamping = damping
+        world.addBody(body)
+        demo.addVisual(body)
+
+        // The top of the sphere, relative to the sphere center
+        const topPoint = new CANNON.Vec3(0, radius, 0)
+        const impulse = new CANNON.Vec3(-strength * dt, 0, 0)
+        body.applyImpulse(impulse, topPoint)
+      })
+
+      // Add force to the body center
+      demo.addScene('Center force', () => {
+        const world = setupWorld(demo)
+
+        const shape = new CANNON.Sphere(radius)
+        const body = new CANNON.Body({ mass })
+        body.addShape(shape)
+        body.linearDamping = damping
+        body.angularDamping = damping
+        world.addBody(body)
+        demo.addVisual(body)
+
+        const force = new CANNON.Vec3(-strength, 0, 0)
+        body.applyForce(force)
+      })
+
+      // Add force to the top of the sphere
+      demo.addScene('Top force', () => {
+        const world = setupWorld(demo)
+
+        const shape = new CANNON.Sphere(radius)
+        const body = new CANNON.Body({ mass })
+        body.addShape(shape)
+        body.linearDamping = damping
+        body.angularDamping = damping
+        world.addBody(body)
+        demo.addVisual(body)
+
+        // The top of the sphere, relative to the sphere center
+        const topPoint = new CANNON.Vec3(0, radius, 0)
+        const force = new CANNON.Vec3(-strength, 0, 0)
+        body.applyForce(force, topPoint)
+      })
+
+      // Apply a force in the local space
+      demo.addScene('Local force', () => {
+        const world = setupWorld(demo)
+
+        const shape = new CANNON.Sphere(radius)
+        const body = new CANNON.Body({ mass })
+        body.addShape(shape)
+        body.linearDamping = damping
+        body.angularDamping = damping
+        body.quaternion.setFromEuler(0, 0, Math.PI)
+        world.addBody(body)
+        demo.addVisual(body)
+
+        // it's the top point, but since the sphere is rotated
+        // by 180 degrees, it is the bottom point to the right
+        const topPoint = new CANNON.Vec3(0, radius, 0)
+        const force = new CANNON.Vec3(-strength, 0, 0)
+        body.applyLocalForce(force, topPoint)
+      })
+
+      // Apply a rotational torque
+      demo.addScene('Torque', () => {
+        const world = setupWorld(demo)
+
+        const shape = new CANNON.Sphere(radius)
+        const body = new CANNON.Body({ mass })
+        body.addShape(shape)
+        body.linearDamping = damping
+        body.angularDamping = damping
+        world.addBody(body)
+        demo.addVisual(body)
+
+        // add a positive rotation in the z-axis
+        const torque = new CANNON.Vec3(0, 0, strength)
+        body.applyTorque(torque)
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        return world
+      }
+    </script>
+  </body>
+</html>

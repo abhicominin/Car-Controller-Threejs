@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - callbacks demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Demo usage of a preStep callback.
+       */
+
+      const demo = new Demo()
+
+      demo.addScene('Moon', () => {
+        const world = demo.getWorld()
+
+        const moonShape = new CANNON.Sphere(0.5)
+        const moon = new CANNON.Body({
+          mass: 5,
+          position: new CANNON.Vec3(-5, 0, 0),
+        })
+        moon.addShape(moonShape)
+
+        moon.velocity.set(0, 8, 0)
+        moon.linearDamping = 0.0
+
+        const planetShape = new CANNON.Sphere(3.5)
+        const planet = new CANNON.Body({ mass: 0 })
+        planet.addShape(planetShape)
+
+        moon.preStep = () => {
+          const moon_to_planet = new CANNON.Vec3()
+          moon.position.negate(moon_to_planet)
+
+          const distance = moon_to_planet.length()
+
+          moon_to_planet.normalize()
+          moon_to_planet.scale(1500 / Math.pow(distance, 2), moon.force)
+        }
+
+        world.addBody(moon)
+        world.addBody(planet)
+
+        demo.addVisual(moon)
+        demo.addVisual(planet)
+      })
+
+      demo.start()
+    </script>
+  </body>
+</html>

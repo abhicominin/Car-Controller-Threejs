@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - compound demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * A Compound shape is a shape built out of other shapes called child-shapes.
+       * You can see it as a holder of a group of other shapes.
+       * Use the compound shape to build rigid bodies that have more complex geometry.
+       * For example, you can build concave shapes. When a child shape is added to
+       * the Compound shape, a transform consisting of a position and a quaternion is
+       * needed. This enables you to add child shapes at any position, rotated however
+       * you like inside the local coordinate system of the Compound shape.
+       */
+
+      const demo = new Demo()
+
+      // A compound shape consisting of a number of boxes.
+      demo.addScene('Boxes', () => {
+        const world = setupWorld(demo)
+
+        // Create the compound shape
+        // const compoundShape = new CANNON.Compound();
+        const size = 1.5
+
+        // Now create a Body for our Compound
+        const mass = 10
+        const body = new CANNON.Body({ mass })
+        body.position.set(0, 6, 0)
+        body.quaternion.setFromEuler(0, 0, Math.PI * 0.03)
+
+        // Use a box shape as child shape
+        const shape = new CANNON.Box(new CANNON.Vec3(size * 0.5, size * 0.5, size * 0.5))
+
+        // We can add the same shape several times to position child shapes within the Compound.
+        body.addShape(shape, new CANNON.Vec3(-size, -size, 0))
+        body.addShape(shape, new CANNON.Vec3(-size, size, 0))
+        body.addShape(shape, new CANNON.Vec3(size, -size, 0))
+        body.addShape(shape, new CANNON.Vec3(size, size, 0))
+        // Note: we only use translational offsets. The third argument could be a CANNON.Quaternion to rotate the child shape.
+        body.addShape(shape, new CANNON.Vec3(size, 0, 0))
+        body.addShape(shape, new CANNON.Vec3(0, -size, 0))
+        body.addShape(shape, new CANNON.Vec3(0, size, 0))
+
+        world.addBody(body)
+        demo.addVisual(body)
+      })
+
+      // Here we create a compound made out of spheres
+      demo.addScene('Spheres', () => {
+        const world = setupWorld(demo)
+
+        const mass = 10
+        const body = new CANNON.Body({ mass })
+
+        // Compound shape
+        const sphereShape = new CANNON.Sphere(1)
+        body.addShape(sphereShape, new CANNON.Vec3(-1, -1, 0))
+        body.addShape(sphereShape, new CANNON.Vec3(-1, 1, 0))
+        body.addShape(sphereShape, new CANNON.Vec3(1, -1, 0))
+        body.addShape(sphereShape, new CANNON.Vec3(1, 1, 0))
+
+        body.position.set(0, 6, 0)
+        body.quaternion.setFromEuler(0, 0, -Math.PI * 0.03)
+        world.addBody(body)
+        demo.addVisual(body)
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -30, 0)
+
+        // Static ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0 })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        return world
+      }
+    </script>
+  </body>
+</html>

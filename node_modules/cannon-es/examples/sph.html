@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - sph demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Smoothed-particle hydrodynamics
+       * https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics
+       */
+
+      const demo = new Demo()
+
+      const nx = 4
+      const ny = 15
+      const nz = 4
+
+      // Test scalability - add scenes for different number of particles
+      demo.addScene(`${nx * ny * nz} particles`, () => {
+        const world = setupWorld(demo)
+
+        const width = 10
+        const height = 5
+        const mass = 0.01
+
+        const sph = new CANNON.SPHSystem()
+        sph.density = 1
+        sph.viscosity = 0.03
+        sph.smoothingRadius = 1.0
+        world.subsystems.push(sph)
+
+        // Same material for everything
+        const material = new CANNON.Material()
+        const material_material = new CANNON.ContactMaterial(material, material, {
+          friction: 0.06,
+          restitution: 0.0,
+        })
+        world.addContactMaterial(material_material)
+
+        // Ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0, material })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        // Plane -x
+        const planeShapeXmin = new CANNON.Plane()
+        const planeXmin = new CANNON.Body({ mass: 0, material })
+        planeXmin.addShape(planeShapeXmin)
+        planeXmin.quaternion.setFromEuler(0, Math.PI / 2, 0)
+        planeXmin.position.set(-width * 0.5, 0, 0)
+        world.addBody(planeXmin)
+
+        // Plane +x
+        const planeShapeXmax = new CANNON.Plane()
+        const planeXmax = new CANNON.Body({ mass: 0, material })
+        planeXmax.addShape(planeShapeXmax)
+        planeXmax.quaternion.setFromEuler(0, -Math.PI / 2, 0)
+        planeXmax.position.set(width * 0.5, 0, 0)
+        world.addBody(planeXmax)
+
+        // Plane -z
+        const planeShapeZmin = new CANNON.Plane()
+        const planeZmin = new CANNON.Body({ mass: 0, material })
+        planeZmin.addShape(planeShapeZmin)
+        planeZmin.quaternion.setFromEuler(0, 0, 0)
+        planeZmin.position.set(0, 0, -height * 0.5)
+        world.addBody(planeZmin)
+
+        // Plane +z
+        const planeShapeZmax = new CANNON.Plane()
+        const planeZmax = new CANNON.Body({ mass: 0, material })
+        planeZmax.addShape(planeShapeZmax)
+        planeZmax.quaternion.setFromEuler(0, Math.PI, 0)
+        planeZmax.position.set(0, 0, height * 0.5)
+        world.addBody(planeZmax)
+
+        // Create particles
+        const randRange = 0.1
+        for (let i = 0; i < nx; i++) {
+          for (let j = 0; j < nz; j++) {
+            for (let k = 0; k < ny; k++) {
+              const particle = new CANNON.Body({ mass, material })
+              particle.addShape(new CANNON.Particle())
+              particle.position.set(
+                ((i + (Math.random() - 0.5) * randRange + 0.5) * width) / nx - width * 0.5,
+                (k * height) / nz,
+                ((j + (Math.random() - 0.5) * randRange + 0.5) * height) / nz - height * 0.5
+              )
+              world.addBody(particle)
+              sph.add(particle)
+              demo.addVisual(particle)
+            }
+          }
+        }
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -10, 0)
+
+        // Tweak contact properties.
+        // Contact stiffness - use to make softer/harder contacts
+        world.defaultContactMaterial.contactEquationStiffness = 1e11
+
+        // Stabilization time in number of timesteps
+        world.defaultContactMaterial.contactEquationRelaxation = 2
+
+        // Max solver iterations: Use more for better force propagation, but keep in mind that it's not very computationally cheap!
+        world.solver.iterations = 10
+
+        return world
+      }
+    </script>
+  </body>
+</html>

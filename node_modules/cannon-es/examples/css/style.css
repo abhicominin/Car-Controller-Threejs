@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Monospace;
+}
+
+canvas {
+  outline: none;
+}
+
+/* more space for the Stats.js button name */
+.dg .cr.function .property-name {
+  width: 100% !important;
+}
+
+.page-title {
+  position: fixed;
+  top: 0.75rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+}
+.page-title span {
+  color: #99ff4e;
+}
+
+.view-source-button {
+  display: block;
+
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
+
+  padding: 0.75rem;
+  border-radius: 50%;
+
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+.view-source-button:hover {
+  background-color: #f3f3f3;
+}
+.view-source-button img {
+  display: block;
+  width: 1.5rem;
+  opacity: 0.8;
+}

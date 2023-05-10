@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - tween demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Tween manually the position of a body.
+       */
+
+      const demo = new Demo()
+
+      demo.addScene('Tween box', () => {
+        const world = demo.getWorld()
+
+        // Inputs
+        const startPosition = new CANNON.Vec3(-5, 2, 0)
+        const endPosition = new CANNON.Vec3(5, 2, 0)
+        const tweenTime = 3 // seconds
+
+        const boxShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1))
+        const body = new CANNON.Body({
+          mass: 0,
+          type: CANNON.Body.KINEMATIC,
+          position: startPosition,
+        })
+        body.addShape(boxShape)
+        world.addBody(body)
+        demo.addVisual(body)
+
+        // Compute direction vector and get total length of the path
+        const direction = new CANNON.Vec3()
+        endPosition.vsub(startPosition, direction)
+        const totalLength = direction.length()
+        direction.normalize()
+
+        const speed = totalLength / tweenTime
+        direction.scale(speed, body.velocity)
+
+        // Save the start time
+        const startTime = world.time
+
+        const offset = new CANNON.Vec3()
+
+        function postStepListener() {
+          // Progress is a number where 0 is at start position and 1 is at end position
+          const progress = (world.time - startTime) / tweenTime
+
+          if (progress < 1) {
+            direction.scale(progress * totalLength, offset)
+            startPosition.vadd(offset, body.position)
+          } else {
+            body.velocity.set(0, 0, 0)
+            body.position.copy(endPosition)
+            world.removeEventListener('postStep', postStepListener)
+          }
+        }
+
+        world.addEventListener('postStep', postStepListener)
+
+        // Remove listener when we change demo
+        demo.addEventListener('destroy', () => {
+          world.removeEventListener('postStep', postStepListener)
+        })
+      })
+
+      demo.start()
+    </script>
+  </body>
+</html>

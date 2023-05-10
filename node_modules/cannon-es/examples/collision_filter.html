@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - collisionfilter demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Demonstrates how to filter collisions using Body.collisionFilterGroup and Body.collisionFilterMask.
+       * The filters are applied inside the broadphase. It can be used to allow or disallow collisions between bodies.
+       *
+       * A collision is allowed if
+       *   (bodyA.collisionFilterGroup & bodyB.collisionFilterMask) && (bodyB.collisionFilterGroup & bodyA.collisionFilterMask)
+       *
+       * These are indeed bitwise operations. Learn more about that here: http://en.wikipedia.org/wiki/Bitwise_operation
+       */
+      const demo = new Demo()
+
+      demo.addScene('Collision filter', () => {
+        const world = demo.getWorld()
+        world.gravity.set(0, 0, 0) // no gravity
+
+        // Max solver iterations: Use more for better force propagation, but keep in mind that it's not very computationally cheap!
+        world.solver.iterations = 5
+
+        // Collision filter groups - must be powers of 2!
+        const GROUP1 = 1
+        const GROUP2 = 2
+        const GROUP3 = 4
+
+        const size = 1
+        const mass = 1
+
+        // Sphere
+        const sphereShape = new CANNON.Sphere(size)
+        const sphereBody = new CANNON.Body({
+          mass,
+          position: new CANNON.Vec3(-5, 0, 0),
+          velocity: new CANNON.Vec3(5, 0, 0),
+          collisionFilterGroup: GROUP1, // Put the sphere in group 1
+          collisionFilterMask: GROUP2 | GROUP3, // It can only collide with group 2 and 3
+          shape: sphereShape,
+        })
+
+        // Box
+        const boxBody = new CANNON.Body({
+          mass: mass,
+          shape: new CANNON.Box(new CANNON.Vec3(size, size, size)),
+          collisionFilterGroup: GROUP2, // Put the box in group 2
+          collisionFilterMask: GROUP1, // It can only collide with group 1 (the sphere)
+        })
+
+        // Cylinder
+        const cylinderShape = new CANNON.Cylinder(size, size, size * 2.2, 10)
+        const cylinderBody = new CANNON.Body({
+          mass,
+          shape: cylinderShape,
+          position: new CANNON.Vec3(5, 0, 0),
+          collisionFilterGroup: GROUP3, // Put the cylinder in group 3
+          collisionFilterMask: GROUP1, // It can only collide with group 1 (the sphere)
+        })
+
+        // Add everything to the world and demo
+        world.addBody(sphereBody)
+        world.addBody(boxBody)
+        world.addBody(cylinderBody)
+
+        demo.addVisual(sphereBody)
+        demo.addVisual(boxBody)
+        demo.addVisual(cylinderBody)
+      })
+
+      demo.start()
+    </script>
+  </body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - collisions demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * For debugging different kinds of pair collisions
+       */
+      const demo = new Demo()
+
+      demo.addScene('Sphere / sphere', () => {
+        const world = setupWorld(demo)
+
+        const sphereShape = new CANNON.Sphere(1)
+
+        // Sphere 1
+        const body1 = new CANNON.Body({ mass: 5 })
+        body1.addShape(sphereShape)
+        body1.position.set(-5, 0, 0)
+        body1.velocity.set(5, 0, 0)
+        body1.linearDamping = 0
+        world.addBody(body1)
+        demo.addVisual(body1)
+
+        // Sphere 2
+        const body2 = new CANNON.Body({ mass: 5 })
+        body2.addShape(sphereShape)
+        body2.linearDamping = 0
+        body2.position.set(5, 0, 0)
+        body2.velocity.set(-5, 0, 0)
+        world.addBody(body2)
+        demo.addVisual(body2)
+      })
+
+      // Sphere / box side
+      demo.addScene('Sphere / box side', () => {
+        const world = setupWorld(demo)
+
+        const boxShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1))
+        const sphereShape = new CANNON.Sphere(1)
+
+        // Box
+        const body1 = new CANNON.Body({ mass: 5 })
+        body1.addShape(boxShape)
+        body1.position.set(-5, 0, 0)
+        body1.velocity.set(5, 0, 0)
+        body1.linearDamping = 0
+        world.addBody(body1)
+        demo.addVisual(body1)
+
+        // Sphere
+        const body2 = new CANNON.Body({ mass: 5 })
+        body2.addShape(sphereShape)
+        body2.position.set(5, 0, 0)
+        body2.velocity.set(-5, 0, 0)
+        body2.linearDamping = 0
+        world.addBody(body2)
+        demo.addVisual(body2)
+      })
+
+      demo.addScene('Sphere / box edge', () => {
+        const world = setupWorld(demo)
+
+        const boxShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1))
+        const sphereShape = new CANNON.Sphere(1)
+
+        // Box
+        const body1 = new CANNON.Body({ mass: 5 })
+        body1.addShape(boxShape)
+        body1.position.set(-5, 0, 0)
+        body1.velocity.set(5, 0, 0)
+        body1.linearDamping = 0
+        const quaternion = new CANNON.Quaternion()
+        quaternion.setFromEuler(0, Math.PI * 0.25, 0)
+        body1.quaternion.copy(quaternion)
+        world.addBody(body1)
+        demo.addVisual(body1)
+
+        // Sphere
+        const body2 = new CANNON.Body({ mass: 5 })
+        body2.addShape(sphereShape)
+        body2.position.set(5, 0, 0)
+        body2.velocity.set(-5, 0, 0)
+        body2.linearDamping = 0
+        world.addBody(body2)
+        demo.addVisual(body2)
+      })
+
+      demo.addScene('Sphere / box corner', () => {
+        const world = setupWorld(demo)
+
+        const boxShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1))
+        const sphereShape = new CANNON.Sphere(1)
+
+        // Box
+        const body1 = new CANNON.Body({ mass: 5 })
+        body1.addShape(boxShape)
+        body1.position.set(-5, 0, 0)
+        body1.velocity.set(5, 0, 0)
+        body1.linearDamping = 0
+        const quaternion1 = new CANNON.Quaternion()
+        quaternion1.setFromEuler(0, Math.PI * 0.25, 0)
+        const quaternion2 = new CANNON.Quaternion()
+        quaternion2.setFromEuler(0, 0, Math.PI * 0.25)
+        const quaternion = quaternion1.mult(quaternion2)
+        body1.quaternion.copy(quaternion)
+        world.addBody(body1)
+        demo.addVisual(body1)
+
+        // Sphere
+        const body2 = new CANNON.Body({ mass: 5 })
+        body2.addShape(sphereShape)
+        body2.position.set(5, 0, 0)
+        body2.velocity.set(-5, 0, 0)
+        body2.linearDamping = 0
+        world.addBody(body2)
+        demo.addVisual(body2)
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, 0, 0) // no gravity
+
+        // Tweak contact properties.
+        // Contact stiffness - use to make softer/harder contacts
+        world.defaultContactMaterial.contactEquationStiffness = 1e6
+
+        // Stabilization time in number of timesteps
+        world.defaultContactMaterial.contactEquationRelaxation = 10
+
+        // Max solver iterations: Use more for better force propagation, but keep in mind that it's not very computationally cheap!
+        world.solver.iterations = 5
+
+        return world
+      }
+    </script>
+  </body>
+</html>

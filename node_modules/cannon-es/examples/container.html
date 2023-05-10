@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - container demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * A container filled with spheres.
+       */
+
+      const demo = new Demo()
+      const nx = 4
+      const ny = 4
+
+      // Test scalability - add scenes for different number of spheres
+      demo.addScene(`${nx * ny * 4} spheres`, () => {
+        createContainer(demo, nx, ny, 4)
+      })
+      demo.addScene(`${nx * ny * 8} spheres`, () => {
+        createContainer(demo, nx, ny, 8)
+      })
+      demo.addScene(`${nx * ny * 15} spheres`, () => {
+        createContainer(demo, nx, ny, 15)
+      })
+      demo.addScene(`${nx * ny * 20} spheres`, () => {
+        createContainer(demo, nx, ny, 20)
+      })
+      demo.addScene(`${nx * ny * 25} spheres`, () => {
+        createContainer(demo, nx, ny, 25)
+      })
+      demo.addScene(`${nx * ny * 30} spheres`, () => {
+        createContainer(demo, nx, ny, 30)
+      })
+
+      demo.start()
+
+      function createContainer(demo, nx, ny, nz) {
+        const world = setupWorld(demo)
+
+        // Materials
+        const stone = new CANNON.Material('stone')
+        const stone_stone = new CANNON.ContactMaterial(stone, stone, {
+          friction: 0.3,
+          restitution: 0.2,
+        })
+        world.addContactMaterial(stone_stone)
+
+        // Ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0, material: stone })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        // Plane -x
+        const planeShapeXmin = new CANNON.Plane()
+        const planeXmin = new CANNON.Body({ mass: 0, material: stone })
+        planeXmin.addShape(planeShapeXmin)
+        planeXmin.quaternion.setFromEuler(0, Math.PI / 2, 0)
+        planeXmin.position.set(-5, 0, 0)
+        world.addBody(planeXmin)
+
+        // Plane +x
+        const planeShapeXmax = new CANNON.Plane()
+        const planeXmax = new CANNON.Body({ mass: 0, material: stone })
+        planeXmax.addShape(planeShapeXmax)
+        planeXmax.quaternion.setFromEuler(0, -Math.PI / 2, 0)
+        planeXmax.position.set(5, 0, 0)
+        world.addBody(planeXmax)
+
+        // Plane -z
+        const planeShapeZmin = new CANNON.Plane()
+        const planeZmin = new CANNON.Body({ mass: 0, material: stone })
+        planeZmin.addShape(planeShapeZmin)
+        planeZmin.quaternion.setFromEuler(0, 0, 0)
+        planeZmin.position.set(0, 0, -5)
+        world.addBody(planeZmin)
+
+        // Plane +z
+        const planeShapeZmax = new CANNON.Plane()
+        const planeZmax = new CANNON.Body({ mass: 0, material: stone })
+        planeZmax.addShape(planeShapeZmax)
+        planeZmax.quaternion.setFromEuler(0, Math.PI, 0)
+        planeZmax.position.set(0, 0, 5)
+        world.addBody(planeZmax)
+
+        // Create spheres
+        const randRange = 0.1
+        const heightOffset = 0
+        const sphereShape = new CANNON.Sphere(1) // Sharing shape saves memory
+
+        world.allowSleep = true
+        for (let i = 0; i < nx; i++) {
+          for (let j = 0; j < ny; j++) {
+            for (let k = 0; k < nz; k++) {
+              const sphereBody = new CANNON.Body({ mass: 5, material: stone })
+              sphereBody.addShape(sphereShape)
+              sphereBody.position.set(
+                -(i * 2 - nx * 0.5 + (Math.random() - 0.5) * randRange),
+                1 + k * 2.1 + heightOffset,
+                j * 2 - ny * 0.5 + (Math.random() - 0.5) * randRange
+              )
+              sphereBody.allowSleep = true
+              sphereBody.sleepSpeedLimit = 1
+              sphereBody.sleepTimeLimit = 5
+
+              world.addBody(sphereBody)
+              demo.addVisual(sphereBody)
+            }
+          }
+        }
+      }
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -30, 0)
+
+        world.broadphase = new CANNON.SAPBroadphase(world) // Buggy?
+
+        // Tweak contact properties.
+        // Contact stiffness - use to make softer/harder contacts
+        world.defaultContactMaterial.contactEquationStiffness = 1e11
+
+        // Stabilization time in number of timesteps
+        world.defaultContactMaterial.contactEquationRelaxation = 2
+
+        // Max solver iterations: Use more for better force propagation, but keep in mind that it's not very computationally cheap!
+        world.solver.iterations = 10
+
+        // Since we have many bodies and they don't move very much, we can use the less accurate quaternion normalization
+        world.quatNormalizeFast = true
+        world.quatNormalizeSkip = 8 // ...and we do not have to normalize every step.
+
+        return world
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - worker example using SharedArrayBuffer</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <script type="module">
+      import { addTitle, addSourceButton } from './js/dom-utils.js'
+
+      addTitle()
+      addSourceButton()
+    </script>
+  </head>
+  <body>
+    <!-- Worker script, will be run in separate thread -->
+    <script id="worker1" type="text/js-worker">
+      import * as CANNON from '../dist/cannon-es.js'
+      import * as THREE from 'https://unpkg.com/three@0.122.0/build/three.module.js'
+      import { geometryToShape } from './js/three-conversion-utils.js'
+
+      const timeStep = 1 / 60
+
+      // The bodies passed down from three.js
+      const bodies = []
+
+      let positions
+      let quaternions
+
+      // Setup world
+      const world = new CANNON.World()
+      world.gravity.set(0, -10, 0)
+      world.solver.tolerance = 0.001
+
+      // Ground plane
+      const groundShape = new CANNON.Plane()
+      const groundBody = new CANNON.Body({ mass: 0 })
+      groundBody.addShape(groundShape)
+      groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+      world.addBody(groundBody)
+
+      // When we get the init message
+      self.addEventListener('message', (event) => {
+        const { geometries: geometriesSerialized, positionsSharedBuffer, quaternionsSharedBuffer } = event.data
+
+        // Parse the serialized geometries received from
+        // the main thread
+        const unserialized = new THREE.ObjectLoader().parseGeometries(geometriesSerialized)
+        const geometries = geometriesSerialized.map(g => unserialized[g.uuid])
+
+        // Save the reference to the SharedArrayBuffer
+        positions = new Float32Array(positionsSharedBuffer)
+        quaternions = new Float32Array(quaternionsSharedBuffer)
+
+        // Create the bodies from the three.js geometries
+        for (let i = 0; i < geometries.length; i++) {
+          const geometry = geometries[i]
+
+          const shape = geometryToShape(geometry)
+          const body = new CANNON.Body({ mass: 1 })
+          body.addShape(shape)
+          body.position.set(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2])
+          body.quaternion.set(
+            quaternions[i * 4 + 0],
+            quaternions[i * 4 + 1],
+            quaternions[i * 4 + 2],
+            quaternions[i * 4 + 3]
+          )
+          bodies.push(body)
+          world.addBody(body)
+        }
+
+        // Start the loop
+        setInterval(update, timeStep * 1000)
+      })
+
+      function update() {
+        // Step the world
+        world.step(timeStep)
+
+        // Copy the cannon.js data into the buffers
+        for (let i = 0; i < bodies.length; i++) {
+          const body = bodies[i]
+
+          positions[i * 3 + 0] = body.position.x
+          positions[i * 3 + 1] = body.position.y
+          positions[i * 3 + 2] = body.position.z
+          quaternions[i * 4 + 0] = body.quaternion.x
+          quaternions[i * 4 + 1] = body.quaternion.y
+          quaternions[i * 4 + 2] = body.quaternion.z
+          quaternions[i * 4 + 3] = body.quaternion.w
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import * as THREE from 'https://unpkg.com/three@0.122.0/build/three.module.js'
+      import Stats from 'https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js'
+      import { OrbitControls } from 'https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js'
+
+      // three.js variables
+      let camera, scene, renderer, stats
+      let controls
+
+      // The meshes that will be passed to cannon.js
+      const meshes = []
+
+      // The SharedArrayBuffers. They contain all our kinematic data we need for rendering.
+      // SharedArrayBuffers are shared between the main
+      // and worker thread. Cannon.js will update the data while
+      // three.js will read from them.
+      let positions
+      let quaternions
+
+      initThree()
+      initCannonWorker()
+      animate()
+
+      function initThree() {
+        // Camera
+        camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 10000)
+        camera.position.set(Math.cos(Math.PI / 5) * 30, 5, Math.sin(Math.PI / 5) * 30)
+
+        // Scene
+        scene = new THREE.Scene()
+        scene.fog = new THREE.Fog(0x000000, 500, 10000)
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true })
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setClearColor(scene.fog.color)
+
+        renderer.shadowMap.enabled = true
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap
+
+        renderer.outputEncoding = THREE.sRGBEncoding
+
+        document.body.appendChild(renderer.domElement)
+
+        // Stats.js
+        stats = new Stats()
+        document.body.appendChild(stats.dom)
+
+        // Orbit controls
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.enableDamping = true
+        controls.enablePan = false
+        controls.dampingFactor = 0.3
+        controls.minDistance = 10
+        controls.maxDistance = 500
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x666666)
+        scene.add(ambientLight)
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.75)
+
+        const distance = 20
+        directionalLight.position.set(distance, distance, distance)
+
+        directionalLight.castShadow = true
+
+        directionalLight.shadow.mapSize.width = 1024
+        directionalLight.shadow.mapSize.height = 1024
+
+        directionalLight.shadow.camera.left = -distance
+        directionalLight.shadow.camera.right = distance
+        directionalLight.shadow.camera.top = distance
+        directionalLight.shadow.camera.bottom = -distance
+
+        directionalLight.shadow.camera.far = 3 * distance
+        directionalLight.shadow.camera.near = distance
+
+        scene.add(directionalLight)
+
+        // Floor
+        const floorGeometry = new THREE.PlaneGeometry(100, 100, 1, 1)
+        floorGeometry.rotateX(-Math.PI / 2)
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x777777 })
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial)
+        floor.receiveShadow = true
+        scene.add(floor)
+
+        // Cubes
+        const cubeGeometry = new THREE.BoxBufferGeometry()
+        const cubeMaterial = new THREE.MeshStandardMaterial({ color: '#888' })
+        for (let i = 0; i < 40; i++) {
+          const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial)
+          cubeMesh.position.set(Math.random() - 0.5, i * 2.5 + 0.5, Math.random() - 0.5)
+          cubeMesh.castShadow = true
+          cubeMesh.receiveShadow = true
+          meshes.push(cubeMesh)
+          scene.add(cubeMesh)
+        }
+
+        // Torus knots
+        const torusGeometry = new THREE.TorusKnotBufferGeometry()
+        const torusMaterial = new THREE.MeshStandardMaterial({ color: '#2b4c7f' })
+        for (let i = 0; i < 8; i++) {
+          const torusMesh = new THREE.Mesh(torusGeometry, torusMaterial)
+          torusMesh.position.set((Math.random() - 0.5) * 20, i * 10 + 20, (Math.random() - 0.5) * 20)
+          // random rotation
+          torusMesh.quaternion.setFromEuler(
+            new THREE.Euler(Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2)
+          )
+          torusMesh.castShadow = true
+          torusMesh.receiveShadow = true
+          meshes.push(torusMesh)
+          scene.add(torusMesh)
+        }
+
+        window.addEventListener('resize', onWindowResize)
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function initCannonWorker() {
+        // Initialize the SharedArrayBuffers.
+        // SharedArrayBuffers are shared between the main
+        // and worker thread. Cannon.js will update the data while
+        // three.js will read from them.
+        const positionsSharedBuffer = new SharedArrayBuffer(meshes.length * 3 * Float32Array.BYTES_PER_ELEMENT)
+        const quaternionsSharedBuffer = new SharedArrayBuffer(meshes.length * 4 * Float32Array.BYTES_PER_ELEMENT)
+        positions = new Float32Array(positionsSharedBuffer)
+        quaternions = new Float32Array(quaternionsSharedBuffer)
+
+        // Copy the initial meshes data into the buffers
+        for (let i = 0; i < meshes.length; i++) {
+          const mesh = meshes[i]
+
+          positions[i * 3 + 0] = mesh.position.x
+          positions[i * 3 + 1] = mesh.position.y
+          positions[i * 3 + 2] = mesh.position.z
+          quaternions[i * 4 + 0] = mesh.quaternion.x
+          quaternions[i * 4 + 1] = mesh.quaternion.y
+          quaternions[i * 4 + 2] = mesh.quaternion.z
+          quaternions[i * 4 + 3] = mesh.quaternion.w
+        }
+
+        // Get the worker code
+        let workerScript = document.querySelector('#worker1').textContent
+
+        // BUG Relative urls don't currently work in an inline
+        // module worker in Chrome
+        // https://bugs.chromium.org/p/chromium/issues/detail?id=1161710
+        const href = window.location.href.replace('/examples/worker_sharedarraybuffer', '')
+        workerScript = workerScript
+          .replace(/from '\.\.\//g, `from '${href}/`)
+          .replace(/from '\.\//g, `from '${href}/examples/`)
+
+        // Create a blob for the inline worker code
+        const blob = new Blob([workerScript], { type: 'text/javascript' })
+
+        // Create worker
+        const worker = new Worker(window.URL.createObjectURL(blob), { type: 'module' })
+
+        worker.addEventListener('message', (event) => {
+          console.log('Message from worker', event.data)
+        })
+        worker.addEventListener('error', (event) => {
+          console.error('Error in worker', event.message)
+        })
+
+        // Send the geometry data to setup the cannon.js bodies
+        // and the initial position and rotation data
+        worker.postMessage({
+          // serialize the geometries as json to pass
+          // them to the worker
+          geometries: meshes.map((m) => m.geometry.toJSON()),
+          positionsSharedBuffer,
+          quaternionsSharedBuffer,
+        })
+      }
+
+      function animate() {
+        requestAnimationFrame(animate)
+
+        // Read from the SharedArrayBuffers and
+        // update the three.js meshes
+        for (let i = 0; i < meshes.length; i++) {
+          meshes[i].position.set(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2])
+          meshes[i].quaternion.set(
+            quaternions[i * 4 + 0],
+            quaternions[i * 4 + 1],
+            quaternions[i * 4 + 2],
+            quaternions[i * 4 + 3]
+          )
+        }
+
+        controls.update()
+        renderer.render(scene, camera)
+        stats.update()
+      }
+    </script>
+  </body>
+</html>

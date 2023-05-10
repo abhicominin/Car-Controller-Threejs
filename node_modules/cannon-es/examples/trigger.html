@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - trigger demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Demonstrates the use of trigger bodies, bodies which don't
+       * collide with other bodies and allow you to run callbacks
+       * when another body enters/exits them.
+       */
+      const demo = new Demo()
+
+      demo.addScene('Trigger', () => {
+        const world = setupWorld(demo)
+
+        const radius = 1
+
+        // Sphere moving towards right
+        const sphereShape = new CANNON.Sphere(radius)
+        const sphereBody = new CANNON.Body({ mass: 1 })
+        sphereBody.addShape(sphereShape)
+        sphereBody.position.set(-5, 0, 0)
+        const impulse = new CANNON.Vec3(5.5, 0, 0)
+        const topPoint = new CANNON.Vec3(0, radius, 0)
+        sphereBody.applyImpulse(impulse, topPoint)
+        sphereBody.linearDamping = 0.3
+        sphereBody.angularDamping = 0.3
+        world.addBody(sphereBody)
+        demo.addVisual(sphereBody)
+
+        // Trigger body
+        const boxShape = new CANNON.Box(new CANNON.Vec3(2, 2, 5))
+        const triggerBody = new CANNON.Body({ isTrigger: true })
+        triggerBody.addShape(boxShape)
+        triggerBody.position.set(5, radius, 0)
+        world.addBody(triggerBody)
+        demo.addVisual(triggerBody)
+
+        // It is possible to run code on the exit/enter
+        // of the trigger.
+        triggerBody.addEventListener('collide', (event) => {
+          if (event.body === sphereBody) {
+            console.log('The sphere entered the trigger!', event)
+          }
+        })
+        world.addEventListener('endContact', (event) => {
+          if (
+            (event.bodyA === sphereBody && event.bodyB === triggerBody) ||
+            (event.bodyB === sphereBody && event.bodyA === triggerBody)
+          ) {
+            console.log('The sphere exited the trigger!', event)
+          }
+        })
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, 0, 0) // no gravity
+
+        return world
+      }
+    </script>
+  </body>
+</html>

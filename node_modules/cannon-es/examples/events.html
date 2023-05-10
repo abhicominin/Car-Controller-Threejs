@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - events demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * For demonstrating events.
+       */
+
+      const demo = new Demo()
+
+      demo.addScene("'collide' event", function () {
+        const world = setupWorld(demo)
+
+        const size = 1
+
+        // Sphere
+        const sphere = new CANNON.Sphere(size)
+        const sphereBody = new CANNON.Body({ mass: 30 })
+        sphereBody.addShape(sphere)
+        sphereBody.position.set(0, size * 6, 0)
+        world.addBody(sphereBody)
+        demo.addVisual(sphereBody)
+
+        // When a body collides with another body, they both dispatch the "collide" event.
+        sphereBody.addEventListener('collide', (event) => {
+          console.log('The sphere just collided with the ground!')
+          console.log('Collided with body:', event.body)
+          console.log('Contact between bodies:', event.contact)
+        })
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -20, 0)
+
+        // Tweak contact properties.
+        // Contact stiffness - use to make softer/harder contacts
+        world.defaultContactMaterial.contactEquationStiffness = 5e7
+
+        // Stabilization time in number of timesteps
+        world.defaultContactMaterial.contactEquationRelaxation = 4
+
+        // Static ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0 })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        return world
+      }
+    </script>
+  </body>
+</html>

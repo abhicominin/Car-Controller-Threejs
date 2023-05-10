@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - Heightfield demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      const demo = new Demo()
+
+      demo.addScene('Heightfield', () => {
+        const world = setupWorld(demo)
+
+        // Create a matrix of height values
+        const matrix = []
+        const sizeX = 15
+        const sizeZ = 15
+        for (let i = 0; i < sizeX; i++) {
+          matrix.push([])
+          for (let j = 0; j < sizeZ; j++) {
+            if (i === 0 || i === sizeX - 1 || j === 0 || j === sizeZ - 1) {
+              const height = 3
+              matrix[i].push(height)
+              continue
+            }
+
+            const height = Math.cos((i / sizeX) * Math.PI * 2) * Math.cos((j / sizeZ) * Math.PI * 2) + 2
+            matrix[i].push(height)
+          }
+        }
+
+        // Create the heightfield
+        const heightfieldShape = new CANNON.Heightfield(matrix, {
+          elementSize: 1,
+        })
+        const heightfieldBody = new CANNON.Body({ mass: 0 })
+        heightfieldBody.addShape(heightfieldShape)
+        heightfieldBody.position.set(
+          -((sizeX - 1) * heightfieldShape.elementSize) / 2,
+          -4,
+          ((sizeZ - 1) * heightfieldShape.elementSize) / 2
+        )
+        heightfieldBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(heightfieldBody)
+        demo.addVisual(heightfieldBody)
+
+        // Add spheres
+        const mass = 1
+        for (let i = 0; i < sizeX - 1; i++) {
+          for (let j = 0; j < sizeZ - 1; j++) {
+            if (i === 0 || i >= sizeX - 2 || j === 0 || j >= sizeZ - 2) {
+              continue
+            }
+
+            const sphereShape = new CANNON.Sphere(0.1)
+            const sphereBody = new CANNON.Body({ mass })
+            sphereBody.addShape(sphereShape)
+            sphereBody.position.set(i + 0.25, 3, -j + 0.25)
+            sphereBody.position.vadd(heightfieldBody.position, sphereBody.position)
+            world.addBody(sphereBody)
+            demo.addVisual(sphereBody)
+          }
+        }
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -10, 0)
+
+        return world
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - performance tests</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Test the performance limits with a lot of stuff happening all at the same time.
+       * The simulation should not slow down but rather skip ahead when introducing jank.
+       * When there are too many object to simulate, the simulation will slow down but still run at a stable framerate.
+       */
+      const demo = new Demo()
+
+      let rafId
+
+      demo.addScene('200 boxes', () => {
+        setupFallingBoxes({ N: 200 })
+      })
+
+      demo.addScene('500 boxes', () => {
+        setupFallingBoxes({ N: 500 })
+      })
+
+      demo.addScene('100 boxes + 32ms jank', () => {
+        setupFallingBoxes({ N: 100, JANK: 32 })
+      })
+
+      demo.addScene('100 boxes + 48ms jank', () => {
+        setupFallingBoxes({ N: 100, JANK: 48 })
+      })
+
+      demo.addScene('100 boxes + 64ms jank', () => {
+        setupFallingBoxes({ N: 100, JANK: 64 })
+      })
+
+      demo.addScene('100 boxes + 128ms jank', () => {
+        setupFallingBoxes({ N: 100, JANK: 128 })
+      })
+
+      function setupFallingBoxes({ N, JANK }) {
+        if (rafId) cancelAnimationFrame(rafId)
+
+        const world = setupWorld(demo)
+
+        const size = 0.25
+        const mass = 1
+
+        const boxShape = new CANNON.Box(new CANNON.Vec3(size, size, size))
+
+        const boxes = []
+        for (let i = 0; i < N; i++) {
+          // start with random positions
+          const position = new CANNON.Vec3(
+            (Math.random() * 2 - 1) * 2.5,
+            Math.random() * 10,
+            (Math.random() * 2 - 1) * 2.5
+          )
+
+          const boxBody = new CANNON.Body({
+            position,
+            mass,
+          })
+          boxBody.addShape(boxShape)
+          world.addBody(boxBody)
+          // demo.addVisual(boxBody)
+          boxes.push(boxBody)
+        }
+
+        // Use instancing so three.js doesn't get in the way
+        // of performance measuring
+        demo.addVisualsInstanced(boxes)
+
+        function animate(ms) {
+          rafId = requestAnimationFrame(animate)
+
+          const time = ms / 1000
+
+          const index = Math.floor(Math.random() * N)
+
+          boxes[index].position.set(0, Math.random() * 10, 0)
+
+          if (JANK) {
+            blockThread(JANK)
+          }
+        }
+        rafId = requestAnimationFrame(animate)
+      }
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -50, 0)
+
+        // Uncomment to try the SAPBroadphase instead of
+        // the default NaiveBroadphase
+        // world.broadphase = new CANNON.SAPBroadphase(world)
+
+        // Max solver iterations: Use more for better force propagation, but keep in mind that it's not very computationally cheap!
+        // world.solver.iterations = 20
+
+        // When tolerance is reached, the system is assumed to be converged.
+        // world.solver.tolerance = 0.001
+
+        // Static ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0 })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        return world
+      }
+
+      // Block the javascript thread for N milliseconds
+      function blockThread(milliseconds = 0) {
+        const start = performance.now()
+        while (performance.now() < start + milliseconds) {}
+      }
+    </script>
+  </body>
+</html>

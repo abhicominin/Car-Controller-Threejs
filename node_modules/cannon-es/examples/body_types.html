@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cannon.js - body types demo</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <script type="module">
+      import * as CANNON from '../dist/cannon-es.js'
+      import { Demo } from './js/Demo.js'
+
+      /**
+       * Demos of the Body.type types.
+       */
+
+      const demo = new Demo()
+
+      demo.addScene('Moving box', () => {
+        const world = setupWorld(demo)
+
+        const size = 2
+
+        // Kinematic Box
+        // Does only collide with dynamic bodies, but does not respond to any force.
+        // Its movement can be controlled by setting its velocity.
+        const boxShape = new CANNON.Box(new CANNON.Vec3(size, size, size))
+        const boxBody = new CANNON.Body({
+          mass: 0,
+          type: CANNON.Body.KINEMATIC,
+          position: new CANNON.Vec3(0, size * 0.5, 0),
+        })
+        boxBody.addShape(boxShape)
+        world.addBody(boxBody)
+        demo.addVisual(boxBody)
+
+        // To control the box movement we must set its velocity
+        boxBody.velocity.set(0, 5, 0)
+        setInterval(() => {
+          if (boxBody.velocity.y < 0) {
+            boxBody.velocity.set(0, 5, 0)
+          } else {
+            boxBody.velocity.set(0, -5, 0)
+          }
+        }, 1000)
+
+        // Dynamic Sphere
+        // Dynamic bodies can collide with bodies of all other types.
+        const sphereShape = new CANNON.Sphere(size)
+        const sphereBody = new CANNON.Body({
+          mass: 5,
+          position: new CANNON.Vec3(0, size * 3, 0),
+        })
+        sphereBody.addShape(sphereShape)
+        world.addBody(sphereBody)
+        demo.addVisual(sphereBody)
+      })
+
+      demo.start()
+
+      function setupWorld(demo) {
+        const world = demo.getWorld()
+        world.gravity.set(0, -40, 0)
+
+        // Tweak contact properties.
+        // Contact stiffness - use to make softer/harder contacts
+        world.defaultContactMaterial.contactEquationStiffness = 1e8
+
+        // Stabilization time in number of timesteps
+        world.defaultContactMaterial.contactEquationRelaxation = 10
+
+        // Static ground plane
+        const groundShape = new CANNON.Plane()
+        const groundBody = new CANNON.Body({ mass: 0 })
+        groundBody.addShape(groundShape)
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+        world.addBody(groundBody)
+        demo.addVisual(groundBody)
+
+        return world
+      }
+    </script>
+  </body>
+</html>

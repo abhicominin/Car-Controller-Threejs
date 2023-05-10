@@ -1,0 +1,53 @@
+{
+  "name": "cannon-es-debugger",
+  "version": "0.1.4",
+  "description": "Wireframe debugger for use with cannon-es https://github.com/pmndrs/cannon-es",
+  "keywords": [
+    "debugger",
+    "cannon",
+    "three",
+    "react",
+    "react-three-fiber"
+  ],
+  "author": "Stefan Hedman <schteppe@gmail.com> (http://steffe.se)",
+  "contributors": [
+    "Cody Persinger <codypersinger@gmail.com> (https://github.com/codynova)",
+    "Marco Fugaro <marco.fugaro@gmail.com> (https://github.com/marcofugaro)"
+  ],
+  "license": "MIT",
+  "main": "./dist/cannon-es-debugger.cjs.js",
+  "module": "./dist/cannon-es-debugger.js",
+  "types": "./dist/cannon-es-debugger.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "npm run typegen && rollup -c",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false --strict",
+    "typegen": "tsc --outFile dist/cannon-es-debugger.d.ts"
+  },
+  "peerDependencies": {
+    "cannon-es": "0.x.x",
+    "three": "0.x.x",
+    "typescript": ">=3.8"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/preset-typescript": "^7.12.7",
+    "@rollup/plugin-babel": "^5.2.2",
+    "@rollup/plugin-node-resolve": "^11.1.0",
+    "cannon-es": "^0.16.0",
+    "prettier": "^2.2.1",
+    "pretty-quick": "^3.1.0",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.36.1",
+    "three": "^0.125.2",
+    "typescript": "^4.1.3"
+  }
+}
